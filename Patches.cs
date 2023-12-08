@@ -62,54 +62,56 @@ static class PlayerClearFoodPatch
 [HarmonyPatch(typeof(Hud), nameof(Hud.UpdateFood))]
 static class HudUpdateFoodPatch
 {
-    private static readonly Color DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.5375f);
-    private static readonly Color RedColor = new Color(1f, 0.0f, 0.0f, 0.5375f);
-    private static bool isMinimalUILoaded = false;
-
-    static HudUpdateFoodPatch()
-    {
-        isMinimalUILoaded = Chainloader.PluginInfos.ContainsKey("Azumatt.MinimalUI");
-    }
+    public static Color defaultColor = new Color(0.0f, 0.0f, 0.0f, 0.5375f);
+    public static Color redColor = new Color(1f, 0.0f, 0.0f, 0.5375f);
+    public static Image? parentImageTemp;
+    public static Image? foodIconMinimalUITemp;
 
     public static void Prefix(Hud __instance, Player player)
     {
         List<Player.Food> foods = player.GetFoods();
-        Transform? muiFoodBarTransform = isMinimalUILoaded ? Hud.instance.m_rootObject.transform.Find("MUI_FoodBar") : null;
-
         for (int index = 0; index < __instance.m_foodIcons.Length; ++index)
         {
             Image foodIcon = __instance.m_foodIcons[index];
-            Image parentImage = foodIcon.transform.parent.GetComponent<Image>();
-
             if (index < foods.Count)
             {
                 Player.Food food = foods[index];
+                foodIcon.transform.parent.TryGetComponent(out Image? parentImage);
+                // Get the diminishing level (a value between 0 and 1, for example)
                 float diminishingLevel = Util.GetFoodDiminishingLevel(food.m_item.m_shared.m_name);
-                Color colorLerped = Color.Lerp(DefaultColor, RedColor, diminishingLevel);
-
-                parentImage.color = colorLerped;
-
-                if (isMinimalUILoaded && Hud.instance.m_foodBarRoot != null)
+                var colorLerped = Color.Lerp(defaultColor, redColor, diminishingLevel);
+                // Apply a color gradient based on the diminishing level
+                // Example: No color change at 0, full red tint at 1
+                if (parentImage != null)
                 {
-                    Transform? foodIconTransform = muiFoodBarTransform?.Find($"food{index}");
-                    if (foodIconTransform != null)
+                    parentImageTemp = parentImage;
+                    parentImage.color = colorLerped;
+                }
+
+                // If the BepInEx chainloader contains Azumatt.MinimalUI, then find the food icon and apply the color gradient
+                if (Chainloader.PluginInfos.ContainsKey("Azumatt.MinimalUI") && Hud.instance && Hud.instance.m_foodBarRoot != null)
+                {
+                    if (Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}") != null)
                     {
-                        Image foodIconMinimalUI = foodIconTransform.GetComponent<Image>();
-                        foodIconMinimalUI.color = colorLerped;
+                        Image? foodIconMinimalUI = Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}")?.GetComponent<Image>();
+                        if (foodIconMinimalUI != null)
+                        {
+                            foodIconMinimalUITemp = foodIconMinimalUI;
+                            foodIconMinimalUI.color = colorLerped;
+                        }
                     }
                 }
             }
             else
             {
-                parentImage.color = DefaultColor;
-                if (isMinimalUILoaded && Hud.instance.m_foodBarRoot != null)
+                if (parentImageTemp != null)
                 {
-                    Transform? foodIconTransform = muiFoodBarTransform?.Find($"food{index}");
-                    if (foodIconTransform != null)
-                    {
-                        Image foodIconMinimalUI = foodIconTransform.GetComponent<Image>();
-                        foodIconMinimalUI.color = DefaultColor;
-                    }
+                    parentImageTemp.color = defaultColor;
+                }
+
+                if (foodIconMinimalUITemp != null)
+                {
+                    foodIconMinimalUITemp.color = defaultColor;
                 }
             }
         }
