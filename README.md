@@ -2,7 +2,8 @@
 
 ## A mod that encourages dietary variety through diminishing returns.
 
-Makes it so that eating the same thing over and over will give you fewer and fewer food benefits (health, stamina, eitr) restored each time.
+Makes it so that eating the same thing over and over will give you fewer and fewer food benefits (health, stamina, eitr)
+restored each time.
 
 `Version checks with itself. If installed on the server, it will kick clients who do not have it installed.`
 
@@ -13,7 +14,6 @@ Makes it so that eating the same thing over and over will give you fewer and few
 
 ---
 
-
 ## Configuration Details
 
 1. **Lock Configuration**: Prevents changes to the mod's settings unless done by server admins.
@@ -21,7 +21,69 @@ Makes it so that eating the same thing over and over will give you fewer and few
 3. **Consumption Threshold**: Number of times a food can be eaten before its benefits start diminishing.
 4. **History Length**: The number of unique food consumptions tracked for diminishing returns.
 
+## Detailed Mod Information
 
+### For End Users (Players)
+
+- **Key Concept**: Eating the same food over and over reduces its benefits.
+- **Threshold**: After eating the same food a certain number of times (e.g., 3 times), it starts giving less health or
+  stamina.
+- **Reset Mechanism**: If you diversify your diet and eat different foods, the counter for any previously overeaten food
+  resets, and it will give full benefits when you eat it again.
+- **Example**: If you eat raspberries four times in a row, the fourth time will give you less benefit. But if you switch
+  to other foods and don't eat raspberries for a while, raspberries will be effective again when you return to them.
+
+### For Power Users/Admins
+
+- **Consumption Threshold**: Configurable setting that determines how many times a food can be eaten before diminishing
+  returns start. Lowering this number makes the game more challenging.
+- **History Length**: Determines the number of unique food consumptions tracked. A longer history encourages more
+  variety in diet over an extended period.
+- **Diminishing Factor**: Adjusts the severity of the diminishing returns. A lower factor means a more significant
+  decrease in benefits.
+- **Customization**: These settings allow you to tailor the difficulty and strategy related to food consumption in the
+  game, adding depth to survival mechanics.
+
+# Technical and possibly boring read. Skip to the example scenario if you don't care much about technicals.
+
+The way the food consumption and queue work in your "The Spice of Life" mod can be understood in terms of both the
+consumption threshold and the history length. Let's clarify how these mechanisms interact:
+
+### Consumption Threshold
+
+The consumption threshold determines how many times a player can consume the same food item before its benefits start
+diminishing. This is a count specific to each food item.
+
+- **Counting Up**: Each time a player consumes a food item, a counter for that specific item is increased.
+- **Reaching Threshold**: Once this counter exceeds the threshold value, the benefits of the food start diminishing. For
+  example, if the threshold is set to 3, the benefits diminish on the 4th consumption of the same food item.
+
+### History Length and Queue Mechanism
+
+The history length determines how many unique food consumptions are remembered in the queue.
+
+- **Queue Behavior**: As the player eats different food items, these are added to the queue. Once the queue reaches its
+  maximum size (defined by the history length), the oldest food item in the queue is removed when a new item is added.
+- **Resetting the Counter**: If a food item is removed from the queue (i.e., it hasn't been consumed recently and other
+  foods have been eaten instead), its consumption counter is reset. This means that when it is eaten again, it will
+  provide full benefits until the threshold is reached again.
+
+### Interaction Between Threshold and Queue
+
+- **Threshold First, Then Queue**: The diminishing returns on a specific food item are first governed by the consumption
+  threshold. As long as the food item's consumption count is below this threshold, it provides full benefits.
+- **Queue Determines Reset**: The history length and queue come into play for resetting the consumption count of a food
+  item. If a food item is not part of the recent consumption history (falls out of the queue), its consumption count is
+  reset.
+
+### Example Scenario
+
+- **Threshold = 3, History Length = 5**:
+    - A player eats raspberries (count goes to 1), then eats them again two more times (count goes to 3). On the 4th
+      time, benefits start diminishing.
+    - Meanwhile, the player eats four different foods. Now, raspberries are no longer in the recent five foods eaten (
+      queue length), so their count is reset.
+    - The next time raspberries are eaten, they provide full benefits again until consumed three more times.
 
 <details>
 <summary><b>Installation Instructions</b></summary>

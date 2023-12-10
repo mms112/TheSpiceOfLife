@@ -10,16 +10,15 @@ namespace TheSpiceOfLife;
 [HarmonyPatch(typeof(Player), nameof(Player.EatFood))]
 static class FoodDiminishingReturnsPatch
 {
-    internal static Dictionary<string, int> foodConsumptionCounter = new Dictionary<string, int>();
-    internal static Dictionary<string, (float food, float stamina, float eitr)> originalFoodValues = new Dictionary<string, (float, float, float)>();
-    internal static Queue<string> foodHistory = new Queue<string>();
+    internal static Dictionary<string, int> foodConsumptionCounter = new();
+    internal static Dictionary<string, (float food, float stamina, float eitr)> originalFoodValues = new();
+    internal static Queue<string> foodHistory = new();
 
     public static void Prefix(Player __instance, ItemDrop.ItemData item)
     {
-        // Logic to modify the food item before it's processed by EatFood
         string? foodName = item.m_shared.m_name;
         if (string.IsNullOrWhiteSpace(foodName)) return;
-        // Update food history
+
         Util.UpdateFoodHistory(foodName);
 
         // Restore original food benefits if the diminishing returns no longer apply
@@ -62,8 +61,8 @@ static class PlayerClearFoodPatch
 [HarmonyPatch(typeof(Hud), nameof(Hud.UpdateFood))]
 static class HudUpdateFoodPatch
 {
-    public static Color defaultColor = new Color(0.0f, 0.0f, 0.0f, 0.5375f);
-    public static Color redColor = new Color(1f, 0.0f, 0.0f, 0.5375f);
+    public static Color defaultColor = new(0.0f, 0.0f, 0.0f, 0.5375f);
+    public static Color redColor = new(1f, 0.0f, 0.0f, 1f);
     public static Image? parentImageTemp;
     public static Image? foodIconMinimalUITemp;
 
@@ -88,19 +87,12 @@ static class HudUpdateFoodPatch
                     parentImage.color = colorLerped;
                 }
 
-                // If the BepInEx chainloader contains Azumatt.MinimalUI, then find the food icon and apply the color gradient
-                if (Chainloader.PluginInfos.ContainsKey("Azumatt.MinimalUI") && Hud.instance && Hud.instance.m_foodBarRoot != null)
-                {
-                    if (Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}") != null)
-                    {
-                        Image? foodIconMinimalUI = Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}")?.GetComponent<Image>();
-                        if (foodIconMinimalUI != null)
-                        {
-                            foodIconMinimalUITemp = foodIconMinimalUI;
-                            foodIconMinimalUI.color = colorLerped;
-                        }
-                    }
-                }
+                if (!Chainloader.PluginInfos.ContainsKey("Azumatt.MinimalUI") || !Hud.instance || Hud.instance.m_foodBarRoot == null) continue;
+                if (Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}") == null) continue;
+                Image? foodIconMinimalUI = Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}")?.GetComponent<Image>();
+                if (foodIconMinimalUI == null) continue;
+                foodIconMinimalUITemp = foodIconMinimalUI;
+                foodIconMinimalUI.color = colorLerped;
             }
             else
             {

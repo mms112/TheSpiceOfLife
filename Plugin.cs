@@ -38,7 +38,7 @@ namespace TheSpiceOfLife
             _ = ConfigSync.AddLockingConfigEntry(_serverConfigLocked);
             diminishingFactor = config("1 - General", "DiminishingFactor", 0.75f, "This value determines how much the benefits of a food item diminish with repeated consumption. For example, a factor of 0.75 means that each time the food is consumed past the threshold, its benefits (like health or stamina restored) are multiplied by 0.75, effectively reducing them by 25%.");
             consumptionThreshold = config("1 - General", "ConsumptionThreshold", 3, "This setting defines the number of times a player can consume the same food item before its benefits start diminishing. For example, if set to 3, the food will provide full benefits for the first three times it is eaten, and diminished benefits thereafter.");
-            historyLength = config("1 - General", "HistoryLength", 20, "This value specifies the maximum number of unique food items tracked in the player's food history. If a food item hasn't been eaten in the last 'n' unique food consumptions (where 'n' is the history length), its consumption counter is reset, allowing it to provide full benefits again.");
+            historyLength = config("1 - General", "HistoryLength", 5, "This value specifies the maximum number of unique food items tracked in the player's food history. If a food item hasn't been eaten in the last 'n' unique food consumptions (where 'n' is the history length), its consumption counter is reset, allowing it to provide full benefits again.");
 
 
             Assembly assembly = Assembly.GetExecutingAssembly();
