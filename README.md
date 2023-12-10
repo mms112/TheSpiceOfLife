@@ -11,6 +11,9 @@ restored each time.
 
 `This mod uses a file watcher. If the configuration file is not changed with BepInEx Configuration manager, but changed in the file directly on the server, upon file save, it will sync the changes to all clients.`
 
+![](https://i.imgur.com/TDiauJV.png)
+
+## `Mod made for tangofrags. Special thank you to him for testing it and the idea. Please report all bugs to me using my discord link below. This mod was made fairly quickly`
 
 ---
 
@@ -38,7 +41,7 @@ restored each time.
 - **Consumption Threshold**: Configurable setting that determines how many times a food can be eaten before diminishing
   returns start. Lowering this number makes the game more challenging.
 - **History Length**: Determines the number of unique food consumptions tracked. A longer history encourages more
-  variety in diet over an extended period.
+  variety in diet over an extended period but might be hard for vanilla (especially) early game.
 - **Diminishing Factor**: Adjusts the severity of the diminishing returns. A lower factor means a more significant
   decrease in benefits.
 - **Customization**: These settings allow you to tailor the difficulty and strategy related to food consumption in the
