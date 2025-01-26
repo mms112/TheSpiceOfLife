@@ -13,7 +13,8 @@ restored each time.
 
 ![](https://i.imgur.com/TDiauJV.png)
 
-## `Mod made for tangofrags. Special thank you to him for testing it and the idea. Please report all bugs to me using my discord link below. This mod was made fairly quickly`
+##
+`Mod made for tangofrags. Special thank you to him for testing it and the idea. Please report all bugs to me using my discord link below. This mod was made fairly quickly`
 
 ---
 
@@ -46,6 +47,20 @@ restored each time.
   decrease in benefits.
 - **Customization**: These settings allow you to tailor the difficulty and strategy related to food consumption in the
   game, adding depth to survival mechanics.
+
+---
+
+## New: "I'm getting sick of it" System Messages
+
+By default, once you reach your configured **Consumption Threshold** for a given food, the mod will display an **above
+player** message such as:
+
+- *“I’m starting to get sick of it.”*
+- *“I need a change of flavors...”*
+- *“I'm sick of this food!”*
+
+These lines are selected at random and can be localized. They show up only on the **local player**’s screen, so other
+players won't be spammed with messages.
 
 # Technical and possibly boring read. Skip to the example scenario if you don't care much about technicals.
 
@@ -122,6 +137,15 @@ The history length determines how many unique food consumptions are remembered i
 
 3. **Click the Download button to install the mod.**
 4. **Launch the game.**
+
+</details>
+
+<details>
+<summary><b>Localizing the mod</b></summary>
+
+TheSpiceOfLife supports localization. This means that you can create language files for different languages. For
+example, to add a Korean translation to this mod, a user could create a TheSpiceOfLife.Korean.yml file inside the
+BepInEx/config folder and add Korean translations there.
 
 </details>
 

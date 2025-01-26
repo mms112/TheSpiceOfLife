@@ -4,39 +4,66 @@ using BepInEx.Bootstrap;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
+using static TheSpiceOfLife.Util;
 
 namespace TheSpiceOfLife;
 
 [HarmonyPatch(typeof(Player), nameof(Player.EatFood))]
 static class FoodDiminishingReturnsPatch
 {
-    internal static Dictionary<string, int> foodConsumptionCounter = new();
-    internal static Dictionary<string, (float food, float stamina, float eitr)> originalFoodValues = new();
-    internal static Queue<string> foodHistory = new();
+    internal static Dictionary<string, int> FoodConsumptionCounter = new();
+    internal static Dictionary<string, (float food, float stamina, float eitr)> OriginalFoodValues = new();
+    internal static Queue<string> FoodHistory = new();
+
+    private static readonly string[] DiminishingMessages =
+    [
+        "$spiceoflife_sickofit_1",
+        "$spiceoflife_sickofit_2",
+        "$spiceoflife_sickofit_3"
+    ];
+
 
     public static void Prefix(Player __instance, ItemDrop.ItemData item)
     {
         string? foodName = item.m_shared.m_name;
         if (string.IsNullOrWhiteSpace(foodName)) return;
 
-        Util.UpdateFoodHistory(foodName);
+        UpdateFoodHistory(foodName);
 
         // Restore original food benefits if the diminishing returns no longer apply
-        if (Util.ShouldResetBenefits(foodName))
+        if (ShouldResetBenefits(foodName))
         {
-            Util.RevertFoodBenefitsToOriginal(item);
+            RevertFoodBenefitsToOriginal(item);
         }
 
-        if (foodConsumptionCounter.ContainsKey(foodName))
+        if (FoodConsumptionCounter.ContainsKey(foodName))
         {
-            foodConsumptionCounter[foodName]++;
+            FoodConsumptionCounter[foodName]++;
         }
         else
         {
-            foodConsumptionCounter[foodName] = 1;
+            FoodConsumptionCounter[foodName] = 1;
         }
 
-        Util.ApplyDiminishedFoodBenefits(item);
+        ApplyDiminishedFoodBenefits(item);
+
+
+        int newCount = FoodConsumptionCounter[foodName];
+        int threshold = TheSpiceOfLifePlugin.ConsumptionThreshold.Value;
+
+        if (newCount != threshold) return;
+        if (__instance != Player.m_localPlayer) return;
+
+        string message = DiminishingMessages[Random.Range(0, DiminishingMessages.Length)];
+        // This displays a bubble above your head, but only for you
+        Chat.instance.AddInworldText(
+            Player.m_localPlayer.gameObject,
+            12345L, // "talker ID" (any unique long; local only, so no conflict)
+            Player.m_localPlayer.GetHeadPoint(),
+            Talker.Type.Normal,
+            UserInfo.GetLocalUser(),
+            Localization.instance.Localize(message)
+        );
     }
 }
 
@@ -45,7 +72,7 @@ static class PlayerRemoveOneFoodPatch
 {
     static void Postfix(Player __instance)
     {
-        Util.ResetFoodConsumptionCounter();
+        ResetFoodConsumptionCounter();
     }
 }
 
@@ -54,17 +81,17 @@ static class PlayerClearFoodPatch
 {
     static void Postfix(Player __instance)
     {
-        Util.ResetFoodConsumptionCounter();
+        ResetFoodConsumptionCounter();
     }
 }
 
 [HarmonyPatch(typeof(Hud), nameof(Hud.UpdateFood))]
 static class HudUpdateFoodPatch
 {
-    public static Color defaultColor = new(0.0f, 0.0f, 0.0f, 0.5375f);
-    public static Color redColor = new(1f, 0.0f, 0.0f, 1f);
-    public static Image? parentImageTemp;
-    public static Image? foodIconMinimalUITemp;
+    public static Color DefaultColor = new(0.0f, 0.0f, 0.0f, 0.5375f);
+    public static Color RedColor = new(1f, 0.0f, 0.0f, 1f);
+    public static Image? ParentImageTemp;
+    public static Image? FoodIconMinimalUITemp;
 
     public static void Prefix(Hud __instance, Player player)
     {
@@ -77,13 +104,13 @@ static class HudUpdateFoodPatch
                 Player.Food food = foods[index];
                 foodIcon.transform.parent.TryGetComponent(out Image? parentImage);
                 // Get the diminishing level (a value between 0 and 1, for example)
-                float diminishingLevel = Util.GetFoodDiminishingLevel(food.m_item.m_shared.m_name);
-                var colorLerped = Color.Lerp(defaultColor, redColor, diminishingLevel);
+                float diminishingLevel = GetFoodDiminishingLevel(food.m_item.m_shared.m_name);
+                Color colorLerped = Color.Lerp(DefaultColor, RedColor, diminishingLevel);
                 // Apply a color gradient based on the diminishing level
                 // Example: No color change at 0, full red tint at 1
                 if (parentImage != null)
                 {
-                    parentImageTemp = parentImage;
+                    ParentImageTemp = parentImage;
                     parentImage.color = colorLerped;
                 }
 
@@ -91,26 +118,26 @@ static class HudUpdateFoodPatch
                 if (Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}") == null) continue;
                 Image? foodIconMinimalUI = Utils.FindChild(Hud.instance.m_rootObject.transform.Find("MUI_FoodBar"), $"food{index}")?.GetComponent<Image>();
                 if (foodIconMinimalUI == null) continue;
-                foodIconMinimalUITemp = foodIconMinimalUI;
+                FoodIconMinimalUITemp = foodIconMinimalUI;
                 foodIconMinimalUI.color = colorLerped;
             }
             else
             {
-                if (parentImageTemp != null)
+                if (ParentImageTemp != null)
                 {
-                    parentImageTemp.color = defaultColor;
+                    ParentImageTemp.color = DefaultColor;
                 }
 
-                if (foodIconMinimalUITemp != null)
+                if (FoodIconMinimalUITemp != null)
                 {
-                    foodIconMinimalUITemp.color = defaultColor;
+                    FoodIconMinimalUITemp.color = DefaultColor;
                 }
             }
         }
     }
 }
 
-[HarmonyPatch(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip), typeof(ItemDrop.ItemData), typeof(int), typeof(bool), typeof(float))]
+[HarmonyPatch(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip), typeof(ItemDrop.ItemData), typeof(int), typeof(bool), typeof(float), typeof(int))]
 static class ItemDropItemDataGetTooltipPatch
 {
     static void Postfix(ItemDrop.ItemData item, ref string __result)
@@ -118,12 +145,12 @@ static class ItemDropItemDataGetTooltipPatch
         if (item.m_shared.m_food > 0) // Check if the item is food
         {
             string foodName = item.m_shared.m_name;
-            int consumptionCount = FoodDiminishingReturnsPatch.foodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.foodConsumptionCounter[foodName] : 0;
-            bool isDiminished = Util.IsFoodDiminished(foodName);
+            int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] : 0;
+            bool isDiminished = IsFoodDiminished(foodName);
 
             StringBuilder sb = new("\n");
-            sb.Append(Localization.instance.Localize($"\nConsumption Count: <color=orange>{consumptionCount}</color>\n"));
-            sb.Append(Localization.instance.Localize($"Benefits Diminished: <color=orange>{(isDiminished ? "Yes" : "No")}</color>"));
+            sb.Append(Localization.instance.Localize($"\n$spiceoflife_consumptioncount: <color=orange>{consumptionCount}</color>\n"));
+            sb.Append(Localization.instance.Localize($"$spiceoflife_diminished: <color=orange>{(isDiminished ? "$menu_yes" : "$spiceoflife_no")}</color>"));
 
             __result += sb.ToString();
         }
