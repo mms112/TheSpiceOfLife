@@ -17,7 +17,7 @@ namespace TheSpiceOfLife
     public class TheSpiceOfLifePlugin : BaseUnityPlugin
     {
         internal const string ModName = "TheSpiceOfLife";
-        internal const string ModVersion = "1.0.3";
+        internal const string ModVersion = "1.0.4";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";

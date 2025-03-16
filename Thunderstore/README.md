@@ -14,6 +14,7 @@ restored each time.
 ![](https://i.imgur.com/TDiauJV.png)
 
 ##
+
 `Mod made for tangofrags. Special thank you to him for testing it and the idea. Please report all bugs to me using my discord link below. This mod was made fairly quickly`
 
 ---
@@ -144,8 +145,19 @@ The history length determines how many unique food consumptions are remembered i
 <summary><b>Localizing the mod</b></summary>
 
 TheSpiceOfLife supports localization. This means that you can create language files for different languages. For
-example, to add a Korean translation to this mod, a user could create a TheSpiceOfLife.Korean.yml file inside the
-BepInEx/config folder and add Korean translations there.
+example, to add a `Korean translation` to this mod, a user could create a `TheSpiceOfLife.Korean.yml` file inside the
+`BepInEx/config` folder and add Korean translations there. Simply change the english text to the desired language. Keep the keys and only change what's between the quotes.
+
+The format for the localization file is as follows:
+
+```yaml
+spiceoflife_sickofit_1: "I'm starting to get sick of it."
+spiceoflife_sickofit_2: "I'm getting sick of these same foods..."
+spiceoflife_sickofit_3: "I really need a change of flavors..."
+spiceoflife_consumptioncount: "Consumption Count"
+spiceoflife_diminished: "Benefits Diminished"
+spiceoflife_no: "No"
+```
 
 </details>
 
