@@ -5,8 +5,17 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 using static TheSpiceOfLife.Util;
+using MaikelMod.Managers;
+using Newtonsoft.Json;
 
 namespace TheSpiceOfLife;
+
+internal class ModData
+{
+    public int Version;
+    public string FoodConsumptionCounter = "";
+    public string FoodHistory = "";
+}
 
 [HarmonyPatch(typeof(Player), nameof(Player.EatFood))]
 static class FoodDiminishingReturnsPatch
@@ -29,12 +38,6 @@ static class FoodDiminishingReturnsPatch
         if (string.IsNullOrWhiteSpace(foodName)) return;
 
         UpdateFoodHistory(foodName);
-
-        // Restore original food benefits if the diminishing returns no longer apply
-        if (ShouldResetBenefits(foodName))
-        {
-            RevertFoodBenefitsToOriginal(item);
-        }
 
         if (FoodConsumptionCounter.ContainsKey(foodName))
         {
@@ -70,9 +73,10 @@ static class FoodDiminishingReturnsPatch
 [HarmonyPatch(typeof(Player), nameof(Player.RemoveOneFood))]
 static class PlayerRemoveOneFoodPatch
 {
-    static void Postfix(Player __instance)
+    static void Prefix(Player __instance)
     {
-        ResetFoodConsumptionCounter();
+        if (__instance.m_foods.Count == 0) return;
+        UpdateFoodHistory("");
     }
 }
 
@@ -90,7 +94,7 @@ static class HudUpdateFoodPatch
 {
     public static Color DefaultColor = new(0.0f, 0.0f, 0.0f, 0.5375f);
     public static Color RedColor = new(1f, 0.0f, 0.0f, 1f);
-    public static Image? ParentImageTemp;
+    //public static Image? ParentImageTemp;
     public static Image? FoodIconMinimalUITemp;
 
     public static void Prefix(Hud __instance, Player player)
@@ -99,18 +103,17 @@ static class HudUpdateFoodPatch
         for (int index = 0; index < __instance.m_foodIcons.Length; ++index)
         {
             Image foodIcon = __instance.m_foodIcons[index];
+            foodIcon.transform.parent.TryGetComponent(out Image? parentImage);
             if (index < foods.Count)
             {
-                Player.Food food = foods[index];
-                foodIcon.transform.parent.TryGetComponent(out Image? parentImage);
+                Player.Food food = foods[index];          
                 // Get the diminishing level (a value between 0 and 1, for example)
                 float diminishingLevel = GetFoodDiminishingLevel(food.m_item.m_shared.m_name);
-                Color colorLerped = Color.Lerp(DefaultColor, RedColor, diminishingLevel);
+                Color colorLerped = Color.Lerp(RedColor, DefaultColor, diminishingLevel < 1 ? diminishingLevel - 0.4f : 1f);
                 // Apply a color gradient based on the diminishing level
                 // Example: No color change at 0, full red tint at 1
                 if (parentImage != null)
                 {
-                    ParentImageTemp = parentImage;
                     parentImage.color = colorLerped;
                 }
 
@@ -123,9 +126,9 @@ static class HudUpdateFoodPatch
             }
             else
             {
-                if (ParentImageTemp != null)
+                if (parentImage != null)
                 {
-                    ParentImageTemp.color = DefaultColor;
+                    parentImage.color = DefaultColor;
                 }
 
                 if (FoodIconMinimalUITemp != null)
@@ -140,6 +143,18 @@ static class HudUpdateFoodPatch
 [HarmonyPatch(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip), typeof(ItemDrop.ItemData), typeof(int), typeof(bool), typeof(float), typeof(int))]
 static class ItemDropItemDataGetTooltipPatch
 {
+    static void Prefix(ItemDrop.ItemData item, ref string __result)
+    {
+        if (item.m_shared.m_food > 0) // Check if the item is food
+        {
+            string foodName = item.m_shared.m_name;
+            int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] : 0;
+            
+            if (consumptionCount >= TheSpiceOfLifePlugin.ConsumptionThreshold.Value)
+                ApplyDiminishedFoodBenefits(item, 1);
+        }
+    }
+
     static void Postfix(ItemDrop.ItemData item, ref string __result)
     {
         if (item.m_shared.m_food > 0) // Check if the item is food
@@ -152,7 +167,51 @@ static class ItemDropItemDataGetTooltipPatch
             sb.Append(Localization.instance.Localize($"\n$spiceoflife_consumptioncount: <color=orange>{consumptionCount}</color>\n"));
             sb.Append(Localization.instance.Localize($"$spiceoflife_diminished: <color=orange>{(isDiminished ? "$menu_yes" : "$spiceoflife_no")}</color>"));
 
+            if (isDiminished)
+                ApplyDiminishedFoodBenefits(item);
+
             __result += sb.ToString();
         }
+    }
+}
+
+[HarmonyPatch]
+static class CustomModDataPatch
+{
+    [HarmonyPatch(typeof(Player), nameof(Player.Start))]
+    [HarmonyPostfix]
+    static void LoadModData(Player __instance)
+    {
+        string? json = __instance.GetComponent<SaveManager>()?.GetModData(TheSpiceOfLifePlugin.ModGUID);
+
+        if (json != null)
+        {
+                ModData modData = JsonUtility.FromJson<ModData>(json);
+            if (modData.Version == 1)
+            {
+                FoodDiminishingReturnsPatch.FoodConsumptionCounter = JsonConvert.DeserializeObject<Dictionary<string, int>>(modData.FoodConsumptionCounter) ?? FoodDiminishingReturnsPatch.FoodConsumptionCounter;
+                FoodDiminishingReturnsPatch.FoodHistory = JsonConvert.DeserializeObject<Queue<string>>(modData.FoodHistory) ?? FoodDiminishingReturnsPatch.FoodHistory;
+
+                foreach (var food in __instance.m_foods)
+                {
+                    string foodName = food.m_item.m_shared.m_name;
+                    int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] : 0;
+
+                    if (consumptionCount > TheSpiceOfLifePlugin.ConsumptionThreshold.Value)
+                        ApplyDiminishedFoodBenefits(food.m_item);
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Player), nameof(Player.Save))]
+    [HarmonyPrefix]
+    static void SaveModData(Player __instance)
+    {
+        ModData modData = new ModData();
+        modData.Version = 1;
+        modData.FoodConsumptionCounter = JsonConvert.SerializeObject(FoodDiminishingReturnsPatch.FoodConsumptionCounter, Formatting.None);
+        modData.FoodHistory = JsonConvert.SerializeObject(FoodDiminishingReturnsPatch.FoodHistory);
+        __instance.GetComponent<SaveManager>()?.RegisterModData(TheSpiceOfLifePlugin.ModGUID, JsonUtility.ToJson(modData, false));
     }
 }

@@ -19,7 +19,7 @@ namespace TheSpiceOfLife
         internal const string ModName = "TheSpiceOfLife";
         internal const string ModVersion = "1.0.4";
         internal const string Author = "Azumatt";
-        private const string ModGUID = Author + "." + ModName;
+        internal const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
         private static string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
         internal static string ConnectionError = "";

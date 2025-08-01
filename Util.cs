@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using System;
+using BepInEx;
 
 namespace TheSpiceOfLife;
 
@@ -8,15 +10,6 @@ public class Util
     public static void ResetFoodConsumptionCounter()
     {
         FoodDiminishingReturnsPatch.FoodConsumptionCounter.Clear();
-    }
-
-    // Resets the consumption counter for a specific food
-    public static void ResetFoodCounter(string foodName)
-    {
-        if (FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName))
-        {
-            FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] = 0;
-        }
     }
 
     // Method to check if a food's benefits are diminished
@@ -31,25 +24,20 @@ public class Util
     }
 
     // Method to get the level of food benefit diminishment
-    public static float GetFoodDiminishingLevel(string foodName)
+    public static float GetFoodDiminishingLevel(string foodName, int offset = 0)
     {
         if (FoodDiminishingReturnsPatch.FoodConsumptionCounter.TryGetValue(foodName, out int count))
         {
             // Calculate how far beyond the threshold the item is
-            int overThreshold = count - TheSpiceOfLifePlugin.ConsumptionThreshold.Value;
-
-            // Use the diminishingFactor to scale the diminishing level
-            float scale = 1f / TheSpiceOfLifePlugin.DiminishingFactor.Value;
-
-            // For instance, 0 means no diminishment, 1 means fully diminished
-            // Apply the scale and clamp the result
-            return Mathf.Clamp01(overThreshold / scale);
+            int overThreshold = count + offset - TheSpiceOfLifePlugin.ConsumptionThreshold.Value;
+            if (overThreshold > 0)
+                return (float)Math.Pow(TheSpiceOfLifePlugin.DiminishingFactor.Value, overThreshold);
         }
 
-        return 0f;
+        return 1f;
     }
 
-    public static void ApplyDiminishedFoodBenefits(ItemDrop.ItemData item)
+    public static void ApplyDiminishedFoodBenefits(ItemDrop.ItemData item, int offset = 0)
     {
         string foodName = item.m_shared.m_name;
 
@@ -60,12 +48,13 @@ public class Util
         }
 
         // Apply diminishing returns
-        int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName];
-        if (consumptionCount > TheSpiceOfLifePlugin.ConsumptionThreshold.Value)
+        float dim_factor = GetFoodDiminishingLevel(foodName, offset);
+        if (dim_factor < 1f)
         {
-            item.m_shared.m_food *= TheSpiceOfLifePlugin.DiminishingFactor.Value;
-            item.m_shared.m_foodStamina *= TheSpiceOfLifePlugin.DiminishingFactor.Value;
-            item.m_shared.m_foodEitr *= TheSpiceOfLifePlugin.DiminishingFactor.Value;
+            var orig_values = FoodDiminishingReturnsPatch.OriginalFoodValues[foodName];
+            item.m_shared.m_food = Math.Max((int)(orig_values.food * dim_factor), 1);
+            item.m_shared.m_foodStamina = (int)(orig_values.stamina * dim_factor);
+            item.m_shared.m_foodEitr = (int)(orig_values.eitr * dim_factor);
         }
     }
 
@@ -81,22 +70,16 @@ public class Util
 
     public static void UpdateFoodHistory(string foodName)
     {
-        if (FoodDiminishingReturnsPatch.FoodHistory.Count >= TheSpiceOfLifePlugin.HistoryLength.Value)
+        FoodDiminishingReturnsPatch.FoodHistory.Enqueue(foodName);
+
+        while (FoodDiminishingReturnsPatch.FoodHistory.Count > TheSpiceOfLifePlugin.HistoryLength.Value)
         {
             string oldestFood = FoodDiminishingReturnsPatch.FoodHistory.Dequeue();
-            if (!FoodDiminishingReturnsPatch.FoodHistory.Contains(oldestFood))
+            if (!oldestFood.IsNullOrWhiteSpace() && !FoodDiminishingReturnsPatch.FoodHistory.Contains(oldestFood))
             {
                 // Reset the counter if the oldest food is no longer in the history
                 FoodDiminishingReturnsPatch.FoodConsumptionCounter[oldestFood] = 0;
             }
         }
-
-        FoodDiminishingReturnsPatch.FoodHistory.Enqueue(foodName);
-    }
-
-    public static bool ShouldResetBenefits(string foodName)
-    {
-        // Reset benefits if the food is not in recent history, regardless of its current counter value
-        return !FoodDiminishingReturnsPatch.FoodHistory.Contains(foodName);
     }
 }

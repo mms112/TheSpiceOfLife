@@ -4,7 +4,7 @@
         <RootNamespace>TheSpiceOfLife</RootNamespace>
         <LangVersion>preview</LangVersion>
         <Nullable>enable</Nullable>
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     </PropertyGroup>
     <ItemGroup>
         <EmbeddedResource Include="translations\English.yml" />
@@ -16,8 +16,10 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="YamlDotNet" Version="16.3.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\MaikelMod\MaikelMod.csproj" />
       <ProjectReference Include="..\ServerSync\ServerSync.csproj" />
     </ItemGroup>
 </Project>
