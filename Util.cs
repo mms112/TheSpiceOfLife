@@ -78,7 +78,7 @@ public class Util
             if (!oldestFood.IsNullOrWhiteSpace() && !FoodDiminishingReturnsPatch.FoodHistory.Contains(oldestFood))
             {
                 // Reset the counter if the oldest food is no longer in the history
-                FoodDiminishingReturnsPatch.FoodConsumptionCounter[oldestFood] = 0;
+                FoodDiminishingReturnsPatch.FoodConsumptionCounter.Remove(oldestFood);
             }
         }
     }
