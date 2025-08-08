@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using static TheSpiceOfLife.Util;
 using MaikelMod.Managers;
 using Newtonsoft.Json;
+using System.Reflection.Emit;
 
 namespace TheSpiceOfLife;
 
@@ -182,11 +183,13 @@ static class CustomModDataPatch
     [HarmonyPostfix]
     static void LoadModData(Player __instance)
     {
+        FoodDiminishingReturnsPatch.FoodConsumptionCounter.Clear();
+        FoodDiminishingReturnsPatch.FoodHistory.Clear();
         string? json = __instance.GetComponent<SaveManager>()?.GetModData(TheSpiceOfLifePlugin.ModGUID);
 
         if (json != null)
         {
-                ModData modData = JsonUtility.FromJson<ModData>(json);
+            ModData modData = JsonUtility.FromJson<ModData>(json);
             if (modData.Version == 1)
             {
                 FoodDiminishingReturnsPatch.FoodConsumptionCounter = JsonConvert.DeserializeObject<Dictionary<string, int>>(modData.FoodConsumptionCounter) ?? FoodDiminishingReturnsPatch.FoodConsumptionCounter;
@@ -208,6 +211,19 @@ static class CustomModDataPatch
     [HarmonyPrefix]
     static void SaveModData(Player __instance)
     {
+        List<string> to_remove = new List<string>();
+
+        foreach (var key in FoodDiminishingReturnsPatch.FoodConsumptionCounter.Keys)
+        {
+            if (FoodDiminishingReturnsPatch.FoodConsumptionCounter[key] <= 0)
+                to_remove.Add(key);
+        }
+
+        foreach (var key in to_remove)
+        {
+            FoodDiminishingReturnsPatch.FoodConsumptionCounter.Remove(key);
+        }
+
         ModData modData = new ModData();
         modData.Version = 1;
         modData.FoodConsumptionCounter = JsonConvert.SerializeObject(FoodDiminishingReturnsPatch.FoodConsumptionCounter, Formatting.None);
