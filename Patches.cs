@@ -109,7 +109,7 @@ static class HudUpdateFoodPatch
                 Player.Food food = foods[index];          
                 // Get the diminishing level (a value between 0 and 1, for example)
                 float diminishingLevel = GetFoodDiminishingLevel(food.m_item.m_shared.m_name);
-                Color colorLerped = Color.Lerp(RedColor, DefaultColor, diminishingLevel < 1 ? diminishingLevel - 0.4f : 1f);
+                Color colorLerped = Color.Lerp(RedColor, DefaultColor, diminishingLevel < 1 ? diminishingLevel - 0.35f : 1f);
                 // Apply a color gradient based on the diminishing level
                 // Example: No color change at 0, full red tint at 1
                 if (parentImage != null)
@@ -145,7 +145,7 @@ static class ItemDropItemDataGetTooltipPatch
 {
     static void Prefix(ItemDrop.ItemData item, ref string __result)
     {
-        if (item.m_shared.m_food > 0) // Check if the item is food
+        if (item.m_shared.m_food > 0 && item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable) // Check if the item is food
         {
             string foodName = item.m_shared.m_name;
             int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] : 0;
@@ -157,7 +157,7 @@ static class ItemDropItemDataGetTooltipPatch
 
     static void Postfix(ItemDrop.ItemData item, ref string __result)
     {
-        if (item.m_shared.m_food > 0) // Check if the item is food
+        if (item.m_shared.m_food > 0 && item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable) // Check if the item is food
         {
             string foodName = item.m_shared.m_name;
             int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] : 0;
