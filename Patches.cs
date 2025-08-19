@@ -176,6 +176,43 @@ static class ItemDropItemDataGetTooltipPatch
 }
 
 [HarmonyPatch]
+static class ForagerSetEffect
+{
+    internal static bool hasForager = false;
+    private static readonly int foragerHash = "RagSet".GetStableHashCode();
+
+    [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), new System.Type[] { typeof(StatusEffect), typeof(bool), typeof(int), typeof(float) })]
+    [HarmonyPostfix]
+    static void CheckForager(SEMan __instance, StatusEffect __result)
+    {
+        if (__result.NameHash() == foragerHash)
+        {
+            Player? player = __instance.m_character as Player;
+            if (player != null)
+            {
+                hasForager = true;
+                UpdatePlayerFoods(player);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(SEMan), nameof(SEMan.RemoveStatusEffect), new System.Type[] { typeof(int), typeof(bool) })]
+    [HarmonyPostfix]
+    static void RemoveForager(SEMan __instance, bool __result, int nameHash)
+    {
+        if (__result && nameHash == foragerHash)
+        {
+            Player? player = __instance.m_character as Player;
+            if (player != null)
+            {
+                hasForager = false;
+                UpdatePlayerFoods(player);
+            }
+        }
+    }
+}
+
+[HarmonyPatch]
 static class CustomModDataPatch
 {
     [HarmonyPatch(typeof(Game), nameof(Game.Logout))]
@@ -184,6 +221,7 @@ static class CustomModDataPatch
     {
         FoodDiminishingReturnsPatch.FoodConsumptionCounter.Clear();
         FoodDiminishingReturnsPatch.FoodHistory.Clear();
+        ForagerSetEffect.hasForager = false;
     }
 
     [HarmonyPatch(typeof(Game), nameof(Game.SpawnPlayer))]
@@ -202,15 +240,7 @@ static class CustomModDataPatch
             {
                 FoodDiminishingReturnsPatch.FoodConsumptionCounter = JsonConvert.DeserializeObject<Dictionary<string, int>>(modData.FoodConsumptionCounter) ?? FoodDiminishingReturnsPatch.FoodConsumptionCounter;
                 FoodDiminishingReturnsPatch.FoodHistory = JsonConvert.DeserializeObject<Queue<string>>(modData.FoodHistory) ?? FoodDiminishingReturnsPatch.FoodHistory;
-
-                foreach (var food in __result.m_foods)
-                {
-                    string foodName = food.m_item.m_shared.m_name;
-                    int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] : 0;
-
-                    if (consumptionCount > TheSpiceOfLifePlugin.ConsumptionThreshold.Value)
-                        ApplyDiminishedFoodBenefits(food.m_item);
-                }
+                UpdatePlayerFoods(__result);
             }
         }
     }

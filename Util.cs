@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using BepInEx;
+using static UnityEngine.Networking.UnityWebRequest;
 
 namespace TheSpiceOfLife;
 
@@ -15,7 +16,7 @@ public class Util
     // Method to check if a food's benefits are diminished
     public static bool IsFoodDiminished(string foodName)
     {
-        if (FoodDiminishingReturnsPatch.FoodConsumptionCounter.TryGetValue(foodName, out int count))
+        if (!ForagerSetEffect.hasForager && FoodDiminishingReturnsPatch.FoodConsumptionCounter.TryGetValue(foodName, out int count))
         {
             return count >= TheSpiceOfLifePlugin.ConsumptionThreshold.Value;
         }
@@ -26,7 +27,7 @@ public class Util
     // Method to get the level of food benefit diminishment
     public static float GetFoodDiminishingLevel(string foodName, int offset = 0)
     {
-        if (FoodDiminishingReturnsPatch.FoodConsumptionCounter.TryGetValue(foodName, out int count))
+        if (!ForagerSetEffect.hasForager && FoodDiminishingReturnsPatch.FoodConsumptionCounter.TryGetValue(foodName, out int count))
         {
             // Calculate how far beyond the threshold the item is
             int overThreshold = count + offset - TheSpiceOfLifePlugin.ConsumptionThreshold.Value;
@@ -35,6 +36,18 @@ public class Util
         }
 
         return 1f;
+    }
+
+    public static void UpdatePlayerFoods(Player player)
+    {
+        foreach (var food in player.m_foods)
+        {
+            string foodName = food.m_item.m_shared.m_name;
+            int consumptionCount = FoodDiminishingReturnsPatch.FoodConsumptionCounter.ContainsKey(foodName) ? FoodDiminishingReturnsPatch.FoodConsumptionCounter[foodName] : 0;
+
+            if (consumptionCount > TheSpiceOfLifePlugin.ConsumptionThreshold.Value)
+                ApplyDiminishedFoodBenefits(food.m_item);
+        }
     }
 
     public static void ApplyDiminishedFoodBenefits(ItemDrop.ItemData item, int offset = 0)
@@ -49,23 +62,10 @@ public class Util
 
         // Apply diminishing returns
         float dim_factor = GetFoodDiminishingLevel(foodName, offset);
-        if (dim_factor < 1f)
-        {
-            var orig_values = FoodDiminishingReturnsPatch.OriginalFoodValues[foodName];
-            item.m_shared.m_food = Math.Max((int)(orig_values.food * dim_factor), 1);
-            item.m_shared.m_foodStamina = (int)(orig_values.stamina * dim_factor);
-            item.m_shared.m_foodEitr = (int)(orig_values.eitr * dim_factor);
-        }
-    }
-
-    public static void RevertFoodBenefitsToOriginal(ItemDrop.ItemData item)
-    {
-        string foodName = item.m_shared.m_name;
-        if (!FoodDiminishingReturnsPatch.OriginalFoodValues.TryGetValue(foodName, out (float food, float stamina, float eitr) foodValue)) return;
-        (float originalFood, float originalStamina, float originalEitr) = foodValue;
-        item.m_shared.m_food = originalFood;
-        item.m_shared.m_foodStamina = originalStamina;
-        item.m_shared.m_foodEitr = originalEitr;
+        var orig_values = FoodDiminishingReturnsPatch.OriginalFoodValues[foodName];
+        item.m_shared.m_food = Math.Max((int)(orig_values.food * dim_factor), 1);
+        item.m_shared.m_foodStamina = (int)(orig_values.stamina * dim_factor);
+        item.m_shared.m_foodEitr = (int)(orig_values.eitr * dim_factor);
     }
 
     public static void UpdateFoodHistory(string foodName)
