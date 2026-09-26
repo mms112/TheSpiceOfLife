@@ -140,7 +140,7 @@ static class HudUpdateFoodPatch
     }
 }
 
-[HarmonyPatch(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip), typeof(ItemDrop.ItemData), typeof(int), typeof(bool), typeof(float), typeof(int))]
+[HarmonyPatch(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip), typeof(ItemDrop.ItemData), typeof(int), typeof(bool), typeof(float), typeof(int), typeof(bool))]
 static class ItemDropItemDataGetTooltipPatch
 {
     static void Prefix(ItemDrop.ItemData item, ref string __result)
@@ -181,7 +181,7 @@ static class ForagerSetEffect
     internal static bool hasForager = false;
     private static readonly int foragerHash = "RagSet".GetStableHashCode();
 
-    [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), new System.Type[] { typeof(StatusEffect), typeof(bool), typeof(int), typeof(float) })]
+    [HarmonyPatch(typeof(SEMan), nameof(SEMan.AddStatusEffect), new System.Type[] { typeof(StatusEffect), typeof(bool), typeof(int), typeof(float), typeof(short) })]
     [HarmonyPostfix]
     static void CheckForager(SEMan __instance, StatusEffect __result)
     {
